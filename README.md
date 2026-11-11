@@ -11,11 +11,15 @@ The repository contains no mission data. Each user's operation lives in local fi
 ## Features
 
 ### Dashboard
-- Attack chain timeline with MITRE ATT&CK technique mapping
-- Suspicious IP & phishing domain IOC panels
-- Threat intelligence feed with predicted next moves
-- Actionable recommendations with MITRE mitigation IDs
-- Real-time incident stats (IOCs, compromised users, affected systems)
+Built to answer four questions in order: **how bad is it, what's affected, what happened, and what are we doing next.**
+- The alert is the headline, with one line of counts (compromised users, affected systems, active indicators, ATT&CK techniques) and what changed since the last briefing
+- Attack chain strip of MITRE ATT&CK tactics showing seen / investigating / not seen; click a tactic to filter the timeline
+- Timeline grouped by day, in Zulu time, with T+ since patient zero, who logged each event, unconfirmed events and a last-briefing marker
+- Next actions as a checklist that saves as you tick
+- Expected next moves from threat intel, and an indicators table (IPs, domains, hashes) with one-click copy
+- First-run setup for a brand-new operation
+- **Wall display** at `/?view=wall`: no navigation, large type, for a screen read from across the room. Press Esc to leave
+- Refreshes on its own within 30 seconds when someone else saves a change
 
 ### Network Map
 - Upload draw.io XML diagrams to visualize network topology
@@ -81,7 +85,8 @@ PORT=9000 HOST=127.0.0.1 python3 server.py
 
 | Route | Description |
 |-------|-------------|
-| `/` | Main threat dashboard with timeline, IOCs, and stats |
+| `/` | Dashboard: alert, counts, attack chain, timeline, next actions, indicators |
+| `/?view=wall` | Dashboard as a wall display |
 | `/network-map` | Network topology visualizer with draw.io upload |
 | `/reports` | Searchable incident response report cards |
 | `/admin` | Admin console for editing all dashboard data |
@@ -93,7 +98,8 @@ PORT=9000 HOST=127.0.0.1 python3 server.py
 | `/api/data` | GET | Retrieve all dashboard data (timeline, IPs, domains, recommendations, threat intel) |
 | `/api/data` | POST | Update dashboard data (accepts full JSON payload) |
 | `/api/iocs` | GET | IOC list (IPs, domains, file hashes) taken from `data.json` |
-| `/api/stats` | GET | Headline counts (IOCs, compromised users, affected systems, MITRE techniques, reports) calculated from `data.json` |
+| `/api/stats` | GET | Headline counts (IOCs, compromised users, affected systems, MITRE techniques, reports, open actions) calculated from `data.json`, plus `updated_at`, when the data last changed |
+| `/api/recommendations/<index>` | POST | Mark one recommendation done or open: `{"status": "completed" or "active", "text": "<its text>"}`. Refused with 409 if the text doesn't match, so a changed list never updates the wrong item |
 | `/api/campaign` | GET/POST | Read or update the campaign settings in `campaign.json` |
 | `/api/upload-map` | POST | Upload a draw.io XML network diagram |
 
@@ -138,7 +144,7 @@ The tests use a temporary data folder, so they never touch your own `data.json` 
 
 The dashboard code contains no incident content. Everything specific to an operation lives in two files:
 
-- **`campaign.json`** — the operation's identity and labels: operation name, subtitle, team, dashboard title, status, alert banner, kill chain phases and panel titles.
+- **`campaign.json`** — the operation's settings: operation name, subtitle, description, status, team, alert banner and kill chain phases.
 - **`data.json`** — the incident data:
 
 | Section | What it holds | Shown on |
@@ -153,6 +159,29 @@ The dashboard code contains no incident content. Everything specific to an opera
 | `affected_systems` | Hostnames affected by the incident | Dashboard stat |
 | `reports` | Incident report cards | IR Reports page |
 | `storyboard` | Attack phases, in order | Network Map → Storyboard |
+| `briefings` | Times of team briefings, e.g. `["MAR 11 18:00"]` | Dashboard: "since the last briefing" and the timeline marker |
+
+### Times
+
+Times are written like `MAR 12 03:50` and are treated as **UTC (Zulu)**. The dashboard shows them as `0350Z`, and as date-time groups such as `121350Z MAR 26`. Use `TBD` for events still being dated; they appear under "Undated". ISO 8601 (`2026-03-12T03:50:00Z`) also works. Set `"year"` in `campaign.json` if the operation isn't in the current year.
+
+### Optional fields the dashboard uses
+
+All of these are optional. When one is missing, the dashboard leaves that detail out.
+
+| File | Field | Effect |
+|------|-------|--------|
+| `data.json` | `timeline[].logged_by` | Analyst's initials shown next to the event |
+| `data.json` | `timeline[].confirmed` | `false` shows the event as **Unconfirmed**, with a hollow dot |
+| `data.json` | `phishing_domains[].status` | Status shown in the indicators table, e.g. `ACTIVE`, `BLOCKED` |
+| `campaign.json` | `alert_banner.severity` | `critical` (default), `high`, `medium` or `low` |
+| `campaign.json` | `alert_banner.report_id` | Shown above the headline, with an "Open report" link |
+| `campaign.json` | `alert_banner.raised_at`, `raised_by` | When and by whom the alert was raised |
+| `campaign.json` | `patient_zero_time` | Start point for T+ times; defaults to the first timeline event |
+| `campaign.json` | `duration_days` | Shows "Day 3 of 5" in the top bar |
+| `campaign.json` | `kill_chain_phases[].status` | `hunt` marks a tactic as being investigated. Tactics with timeline events are shown as seen automatically |
+
+Anything in free text that looks like machine data (IPs, hostnames, domains, file names, paths, hashes, accounts) is shown in monospace automatically. Wrap anything else in backticks, e.g. `` `vssadmin delete shadows /all` ``.
 
 ### Starting a new operation
 

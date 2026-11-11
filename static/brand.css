@@ -51,11 +51,6 @@ body {
     font-family: var(--font-sans);
     font-size: 14px;
     background-color: var(--bg);
-    background-image:
-        linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
-    background-size: 48px 48px;
-    background-attachment: fixed;
     color: var(--text);
 }
 
@@ -72,9 +67,7 @@ input, select, textarea, button { font-family: inherit; }
 
 /* Machine data (IPs, hashes, times, technique IDs) is always monospace */
 .mono,
-.event-time, .event-tech, .event-tactic,
-.ioc-list li, .ioc-ip, .ioc-type,
-.rec-mitre, .meta-value, .report-header h3, .report-header .date,
+.meta-value, .report-header h3, .report-header .date,
 .node-sublabel {
     font-family: var(--font-mono);
     font-feature-settings: "zero" 1;

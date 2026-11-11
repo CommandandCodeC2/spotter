@@ -26,6 +26,28 @@ def update_data():
     return jsonify({"success": True})
 
 
+@bp.post('/recommendations/<int:index>')
+def update_recommendation(index):
+    """Mark one recommendation done or open, without resending the whole operation.
+
+    The request includes the item's text, so a list that changed underneath
+    the user (an item added, removed or reordered) is refused instead of
+    updating the wrong item.
+    """
+    body = _json_object()
+    if body is None or body.get("status") not in ("active", "completed"):
+        return jsonify({"success": False, "error": "status must be 'active' or 'completed'"}), 400
+    data = storage.load_data()
+    recs = data["recommendations"]
+    if not 0 <= index < len(recs) or not isinstance(recs[index], dict):
+        return jsonify({"success": False, "error": "No such recommendation"}), 404
+    if "text" in body and recs[index].get("text") != body["text"]:
+        return jsonify({"success": False, "error": "The recommendations changed; reload and try again"}), 409
+    recs[index]["status"] = body["status"]
+    storage.save_data(data)
+    return jsonify({"success": True, "recommendation": recs[index]})
+
+
 @bp.get('/campaign')
 def get_campaign():
     return jsonify(storage.load_campaign())

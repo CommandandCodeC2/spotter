@@ -8,6 +8,7 @@ Both are created on first run and are never committed to git.
 import copy
 import json
 import os
+from datetime import datetime, timezone
 
 from flask import current_app
 
@@ -22,39 +23,25 @@ DEFAULT_DATA = {
     "compromised_users": [],
     "affected_systems": [],
     "reports": [],
-    "storyboard": []
+    "storyboard": [],
+    "briefings": []
 }
 
 # Starting settings for a new operation. campaign.json is created from this on first run.
 DEFAULT_CAMPAIGN = {
     "operation_name": "New Operation",
-    "subtitle": "Incident Response",
+    "subtitle": "",
     "description": "",
+    "status": "SETUP",
     "team": {"name": "", "description": "", "members": []},
-    "dashboard_title": "THREAT HUNT DASHBOARD",
-    "status": "ACTIVE",
-    "stats": {
-        "ioc_label": "Active IOCs",
-        "users_label": "Compromised Users",
-        "systems_label": "Affected Systems",
-        "mitre_label": "MITRE Techs",
-        "status_label": "Status"
-    },
     "alert_banner": {"title": "", "message": ""},
-    "kill_chain_title": "ATTACK CHAIN",
     "kill_chain_phases": [
         {"name": name, "status": ""} for name in [
             "Initial Access", "Execution", "Persistence", "Privilege Escalation",
             "Defense Evasion", "Credential Access", "Discovery", "Lateral Movement",
             "Collection", "Command and Control", "Exfiltration", "Impact"
         ]
-    ],
-    "panels": {
-        "suspicious_ips_title": "SUSPICIOUS IPS",
-        "phishing_domains_title": "PHISHING & C2 DOMAINS"
-    },
-    "threat_intel_title": "THREAT INTELLIGENCE - EXPECTED NEXT MOVES",
-    "recommendations_title": "RECOMMENDED ACTIONS"
+    ]
 }
 
 
@@ -112,6 +99,14 @@ def save_data(data):
     _write_json(data_path(), data)
 
 
+def data_updated_at():
+    """When data.json or campaign.json last changed, as an ISO 8601 UTC string."""
+    times = [os.path.getmtime(p) for p in (data_path(), campaign_path()) if os.path.exists(p)]
+    if not times:
+        return None
+    return datetime.fromtimestamp(max(times), tz=timezone.utc).isoformat().replace('+00:00', 'Z')
+
+
 def load_campaign():
     campaign = _read_json(campaign_path())
     # Fill in anything missing so every heading and label has a value.
@@ -138,5 +133,7 @@ def compute_stats(data):
         "mitre_techniques": len(techniques),
         "reports": len(data["reports"]),
         "timeline_events": len(data["timeline"]),
-        "status": load_campaign().get("status", "")
+        "open_actions": sum(1 for r in data["recommendations"] if isinstance(r, dict) and r.get("status") != "completed"),
+        "status": load_campaign().get("status", ""),
+        "updated_at": data_updated_at(),
     }

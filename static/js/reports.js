@@ -70,7 +70,9 @@ function applyFilters() {
         : '<div class="empty">No reports match this search or filter.</div>';
 }
 
-document.getElementById('searchInput').addEventListener('input', applyFilters);
+const searchInput = document.getElementById('searchInput');
+searchInput.value = new URLSearchParams(location.search).get('q') || '';
+searchInput.addEventListener('input', applyFilters);
 fetch('/api/data').then(r => r.json()).then(d => {
     reports = d.reports || [];
     buildFilters();

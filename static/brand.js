@@ -13,13 +13,13 @@
 
     const ITEMS = [
         { id: 'dashboard', href: '/', label: 'Dashboard',
-          icon: icon('<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>') },
+          icon: icon('<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>') },
         { id: 'network-map', href: '/network-map', label: 'Network Map',
           icon: icon('<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M10.8 7.2 6.2 16.8M13.2 7.2l4.6 9.6M7.5 19h9"/>') },
         { id: 'reports', href: '/reports', label: 'IR Reports',
           icon: icon('<path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>') },
         { id: 'admin', href: '/admin', label: 'Admin',
-          icon: icon('<path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="var(--surface-0)"/><circle cx="15" cy="12" r="2" fill="var(--surface-0)"/><circle cx="8" cy="18" r="2" fill="var(--surface-0)"/>') }
+          icon: icon('<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>') }
     ];
 
     const nav = document.getElementById('app-nav');

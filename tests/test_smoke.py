@@ -37,6 +37,10 @@ def sample_data():
         "compromised_users": ["user.one", "user.two"],
         "affected_systems": ["WS-01"],
         "reports": [{"id": "IR-0001", "subject": "Test report", "severity": "critical"}],
+        "recommendations": [
+            {"text": "Isolate WS-01", "mitre": "T1021", "status": "active"},
+            {"text": "Reset passwords", "mitre": "T1558", "status": "completed"},
+        ],
         "storyboard": [{"title": "Initial Access", "text": "Phishing email."}],
     }
 
@@ -73,7 +77,8 @@ def test_existing_files_are_not_overwritten(tmp_path):
     campaign = client.get('/api/campaign').get_json()
     assert campaign['operation_name'] == 'Keep Me'
     # Missing settings are filled from defaults
-    assert campaign['dashboard_title'] == 'THREAT HUNT DASHBOARD'
+    assert campaign['status'] == 'SETUP'
+    assert len(campaign['kill_chain_phases']) == 12
 
 
 def test_data_round_trip_and_stats(client):
@@ -84,6 +89,7 @@ def test_data_round_trip_and_stats(client):
     assert data['threat_intel'] == []  # missing sections come back empty
 
     stats = client.get('/api/stats').get_json()
+    assert stats.pop('updated_at').endswith('Z')
     assert stats == {
         "active_iocs": 3,
         "compromised_users": 2,
@@ -91,7 +97,8 @@ def test_data_round_trip_and_stats(client):
         "mitre_techniques": 2,
         "reports": 1,
         "timeline_events": 3,
-        "status": "ACTIVE",
+        "open_actions": 1,
+        "status": "SETUP",
     }
 
     iocs = client.get('/api/iocs').get_json()
@@ -158,3 +165,38 @@ def test_network_map_upload_rejects_bad_files(client, file, error):
     response = client.post('/api/upload-map', data=data, content_type='multipart/form-data')
     assert response.status_code == 302
     assert f'error={error}' in response.headers['Location']
+
+
+def test_recommendation_status_saved_individually(client):
+    client.post('/api/data', json=sample_data())
+    response = client.post('/api/recommendations/0', json={"status": "completed", "text": "Isolate WS-01"})
+    assert response.status_code == 200
+    recs = client.get('/api/data').get_json()['recommendations']
+    assert [r['status'] for r in recs] == ['completed', 'completed']
+    assert client.get('/api/stats').get_json()['open_actions'] == 0
+
+    # Everything else in the operation is untouched
+    assert client.get('/api/data').get_json()['reports'][0]['id'] == 'IR-0001'
+
+
+def test_recommendation_update_refused_if_list_changed(client):
+    client.post('/api/data', json=sample_data())
+    response = client.post('/api/recommendations/0', json={"status": "completed", "text": "Something else"})
+    assert response.status_code == 409
+    assert client.get('/api/data').get_json()['recommendations'][0]['status'] == 'active'
+
+
+@pytest.mark.parametrize('index, body, code', [
+    (5, {"status": "completed"}, 404),
+    (0, {"status": "maybe"}, 400),
+    (0, {}, 400),
+])
+def test_recommendation_update_rejects_bad_requests(client, index, body, code):
+    client.post('/api/data', json=sample_data())
+    assert client.post(f'/api/recommendations/{index}', json=body).status_code == code
+
+
+def test_dashboard_page_is_the_v2_shell(client):
+    page = client.get('/').get_data(as_text=True)
+    assert 'id="topbar"' in page and 'id="dashMain"' in page
+    assert '/static/js/dashboard.js' in page
