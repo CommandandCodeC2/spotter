@@ -34,7 +34,7 @@ The repository contains no mission data. Each user's operation lives in local fi
 
 ## Tech Stack
 
-- **Backend:** Flask, Flask-CORS
+- **Backend:** Flask, served by Waitress
 - **Frontend:** Vanilla HTML/CSS/JS
 - **Fonts:** Inter and JetBrains Mono (Google Fonts)
 - **Brand:** colours, fonts and the logo live in `static/brand.css`, `static/brand.js` and `static/logo.svg`. Change the variables at the top of `brand.css` to re-theme every page.
@@ -43,31 +43,39 @@ The repository contains no mission data. Each user's operation lives in local fi
 ## Quick Start
 
 ### Prerequisites
-- Python 3.8+
+- Python 3.9 or newer
 
-### Installation
-
-```bash
-pip install flask flask-cors
-```
-
-### Run
+### Linux and macOS
 
 ```bash
 bash start_server.sh
 ```
 
-Or manually:
+The first run creates a Python virtual environment in `.venv` and installs the requirements, which takes about a minute. Spotter then runs in the background and writes its output to `server.log`. Stop it with `pkill -f server.py`.
 
-```bash
-python3 server.py
+### Windows
+
+```powershell
+py -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\python server.py
 ```
 
-The server runs on **http://0.0.0.0:8089**. To use a different port, set `PORT`:
+### Open it
+
+Go to **http://localhost:8089**. These settings can be changed with environment variables:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `8089` | Port to listen on |
+| `HOST` | `0.0.0.0` | Address to listen on. `0.0.0.0` makes Spotter reachable from other computers on your network; use `127.0.0.1` to keep it on this computer only |
+| `SPOTTER_DATA_DIR` | the project folder | Where `data.json`, `campaign.json` and `uploads/` are kept |
 
 ```bash
-PORT=9000 python3 server.py
+PORT=9000 HOST=127.0.0.1 python3 server.py
 ```
+
+> **Spotter has no login yet.** Anyone who can reach it can view and edit the operation. Until logins arrive (see the roadmap), only run it on networks you trust, or set `HOST=127.0.0.1`.
 
 ## Pages & Routes
 
@@ -92,21 +100,39 @@ PORT=9000 python3 server.py
 ## File Structure
 
 ```
-dashboard/
-├── server.py           # Flask application (routes, API, templates)
-├── dashboard.html      # Main dashboard frontend
+spotter/
+├── server.py              # Starts Spotter (Waitress, or Flask's server as a fallback)
+├── start_server.sh        # One-command start for Linux and macOS
+├── requirements.txt       # Runtime dependencies
+├── requirements-dev.txt   # Adds pytest for development
+├── spotter/               # The application
+│   ├── __init__.py        # create_app(): builds the Flask app
+│   ├── pages.py           # HTML page routes
+│   ├── api.py             # /api/* routes
+│   ├── storage.py         # Reading and writing data.json / campaign.json, defaults, stats
+│   └── netmap.py          # draw.io diagram parser for the network map
+├── templates/             # One HTML template per page, plus the shared <head>
 ├── static/
-│   ├── brand.css       # Spotter colours, fonts and shared components
-│   ├── brand.js        # Navigation rail with logo
-│   └── logo.svg        # Logo and browser tab icon
-├── data.json           # Your incident data (created on first run, not in git)
-├── campaign.json       # Your operation settings (created on first run, not in git)
-├── start_server.sh     # Quick-start script
-├── .gitignore
-├── uploads/
-│   └── network_map.xml # Your uploaded draw.io diagram (not in git)
-└── __pycache__/
+│   ├── brand.css          # Spotter colours, fonts and shared components
+│   ├── brand.js           # Navigation rail with logo
+│   ├── logo.svg           # Logo and browser tab icon
+│   ├── css/               # Styles for each page
+│   └── js/                # Scripts for each page
+├── tests/                 # pytest tests
+├── data.json              # Your incident data (created on first run, not in git)
+├── campaign.json          # Your operation settings (created on first run, not in git)
+└── uploads/               # Your uploaded draw.io diagram (not in git)
 ```
+
+## Development
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -m pytest
+```
+
+The tests use a temporary data folder, so they never touch your own `data.json` or `campaign.json`.
 
 ## Data
 

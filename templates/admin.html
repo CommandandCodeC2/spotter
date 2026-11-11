@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin · Spotter</title>
+    {% include "_head.html" %}
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <nav class="sidebar" id="app-nav" data-active="admin"></nav>
+    <script src="/static/brand.js"></script>
+    <div class="main-content">
+    <div class="header">
+        <h1>Admin <span class="op-name" id="adminOpName"></span></h1>
+    </div>
+    <div class="container">
+        <div class="card" style="grid-column: 1 / -1;">
+            <h2>Campaign Settings</h2>
+            <div class="item">
+                <div class="item-row"><label>Operation</label><input id="cfgOpName" placeholder="Operation name"></div>
+                <div class="item-row"><label>Subtitle</label><input id="cfgSubtitle" placeholder="Subtitle"></div>
+                <div class="item-row"><label>Description</label><input id="cfgDesc" placeholder="Campaign description"></div>
+                <div class="item-row"><label>Status</label><input id="cfgStatus" placeholder="HUNTING / CONTAINED / CLOSED"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Suspicious IPs <span class="count" id="ipCount">0</span></h2>
+            <div id="ipList"></div>
+            <button class="btn add" onclick="addIP()">+ Add IP</button>
+        </div>
+        
+        <div class="card">
+            <h2>Phishing Domains <span class="count" id="domainCount">0</span></h2>
+            <div id="domainList"></div>
+            <button class="btn add" onclick="addDomain()">+ Add Domain</button>
+        </div>
+        
+        <div class="card">
+            <h2>Timeline Events <span class="count" id="timelineCount">0</span></h2>
+            <div id="timelineList"></div>
+            <button class="btn add" onclick="addTimeline()">+ Add Event</button>
+        </div>
+        
+        <div class="card">
+            <h2>Recommendations <span class="count" id="recCount">0</span></h2>
+            <div id="recList"></div>
+            <button class="btn add" onclick="addRec()">+ Add Recommendation</button>
+        </div>
+    </div>
+    <div class="container">
+        <button class="btn save" onclick="saveAll()">Save all changes</button>
+    </div>
+    
+    <script src="/static/js/admin.js"></script>
+</div>
+</body>
+</html>

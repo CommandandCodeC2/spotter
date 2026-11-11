@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotter</title>
+    {% include "_head.html" %}
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <nav class="sidebar" id="app-nav" data-active="dashboard"></nav>
+    <script src="/static/brand.js"></script>
+    <div class="main-content">
+    <div class="header">
+        <div>
+            <h1 id="operationName"></h1>
+            <div class="subtitle" id="operationSubtitle"></div>
+        </div>
+        <div class="team-badge">
+            <div class="team-name" id="teamName"></div>
+            <div class="team-desc" id="teamDesc"></div>
+            <div class="wolf-pack" id="teamMembers"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="howl-box">
+            <h3 id="dashboardTitle"></h3>
+            <p id="operationDesc"></p>
+        </div>
+
+        <div class="alert-banner" id="alertBanner" style="display:none;">
+            <h3 id="alertTitle"></h3>
+            <p id="alertMessage"></p>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card"><h3 id="statIocLabel">Active IOCs</h3><div class="value" id="statIocValue">0</div></div>
+            <div class="stat-card"><h3 id="statUsersLabel">Compromised Users</h3><div class="value" id="statUsersValue" style="color:var(--critical);">0</div></div>
+            <div class="stat-card"><h3 id="statSystemsLabel">Affected Systems</h3><div class="value" id="statSystemsValue" style="color:var(--high);">0</div></div>
+            <div class="stat-card"><h3 id="statMitreLabel">MITRE Techs</h3><div class="value" id="statMitreValue">0</div></div>
+            <div class="stat-card"><h3 id="statStatusLabel">Status</h3><div class="value" id="statStatusValue" style="font-size:14px;color:var(--critical);"></div></div>
+        </div>
+
+        <div class="timeline-section">
+            <h3 id="killChainTitle"></h3>
+            <div class="wolf-trail" id="killChainPhases"></div>
+            <div id="timelineContainer"></div>
+        </div>
+
+        <div class="grid-2">
+            <div class="panel">
+                <h3 id="suspiciousIpsTitle"></h3>
+                <ul class="ioc-list" id="ipList"></ul>
+            </div>
+            <div class="panel">
+                <h3 id="phishingDomainsTitle"></h3>
+                <ul class="ioc-list" id="domainList"></ul>
+            </div>
+        </div>
+
+        <div class="wolf-howl">
+            <h3 id="threatIntelTitle"></h3>
+            <div id="threatIntelList"></div>
+        </div>
+
+        <div class="wolf-howl" style="margin-top: 25px; border-color: var(--accent);">
+            <h3 id="recommendationsTitle"></h3>
+            <div id="recommendationsList"></div>
+        </div>
+    </div>
+    </div>
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

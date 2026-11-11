@@ -7,3 +7,7 @@ data.json
 campaign.json
 uploads/*
 !uploads/.gitkeep
+
+# Python environment and test cache
+.venv/
+.pytest_cache/

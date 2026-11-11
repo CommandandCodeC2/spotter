@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Map · Spotter</title>
+    {% include "_head.html" %}
+    <link rel="stylesheet" href="/static/css/network_map.css">
+</head>
+<body>
+    <nav class="sidebar" id="app-nav" data-active="network-map"></nav>
+    <script src="/static/brand.js"></script>
+    <div class="main-content">
+    <div class="header">
+        <h1>Network Map <span class="op-name" id="pageOpName"></span></h1>
+    </div>
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('map')">Network Map</div>
+            <div class="tab" onclick="showTab('storyboard')">Storyboards</div>
+        </div>
+        <div id="map-view">
+            <div class="upload-box">
+                {% if success %}
+                <h3 style="color:var(--accent);">Network diagram uploaded</h3>
+                <p style="color:var(--accent);margin:15px 0;">Your network map has been parsed and displayed below.</p>
+                {% elif error %}
+                <h3 style="color:var(--critical);">Upload failed</h3>
+                <p style="color:var(--critical);margin:15px 0;">Error: {{ error }}</p>
+                {% else %}
+                <h3>Upload a draw.io network diagram</h3>
+                {% endif %}
+                <form method="post" action="/api/upload-map" enctype="multipart/form-data">
+                    <input type="file" name="file" accept=".xml" style="display:block;margin:20px auto;padding:10px;background:var(--accent-soft);color:var(--text);border:1px solid var(--accent);border-radius:5px;">
+                    <button type="submit" style="background:var(--accent);color:var(--bg);padding:12px 25px;border:none;border-radius:5px;font-weight:bold;cursor:pointer;">UPLOAD XML</button>
+                </form>
+                <p style="color:var(--text-muted);margin-top:15px;font-size:13px;">Upload a draw.io XML file to visualize your network topology</p>
+            </div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot external"></div> External</div>
+                <div class="legend-item"><div class="legend-dot dmz"></div> DMZ</div>
+                <div class="legend-item"><div class="legend-dot internal"></div> Internal</div>
+                <div class="legend-item"><div class="legend-dot compromised"></div> Compromised</div>
+            </div>
+            <div class="map-container" id="mapContainer">
+                {% if nodes and nodes|length > 0 %}
+                    {% for node in nodes %}
+                    <div class="node {{ node.type }}" style="left: {{ node.x }}px; top: {{ node.y }}px;">
+                        <div class="node-label">{{ node.label }}</div>
+                        {% if node.ip %}<div class="node-sublabel">{{ node.ip }}</div>{% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p style="color:var(--text-muted);text-align:center;padding:100px;">No network map uploaded yet.<br>Upload a draw.io XML diagram above to visualize your network.</p>
+                {% endif %}
+            </div>
+        </div>
+        <div id="storyboard-view" style="display:none;">
+            <div class="storyboard">
+                {% for step in storyboard %}
+                <div class="story-card">
+                    <h4>{{ step.icon ~ ' ' if step.icon }}Phase {{ loop.index }}: {{ step.title }}</h4>
+                    <p>{{ step.text }}</p>
+                </div>
+                {% else %}
+                <div class="story-card"><p>No storyboard yet. Add phases to the "storyboard" section of data.json.</p></div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/network_map.js"></script>
+    </div>
+</body>
+</html>

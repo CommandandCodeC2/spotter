@@ -20,11 +20,11 @@ Sizes: **S** = an afternoon or two, **M** = a few days, **L** = a week or more.
 
 *Make the code safe to grow. No new features for users.*
 
-- [ ] **0.1** Commit and push the Spotter brand work (S)
-- [ ] **0.2** Decide on git history: keep it, or start a fresh repo with a clean first commit (old mission data is still in past commits) (S)
-- [ ] **0.3** Split `server.py` into modules, move HTML into `templates/` and JavaScript into `static/` (M)
-- [ ] **0.4** Add pytest tests that load every page and endpoint (S)
-- [ ] **0.5** Run on Waitress instead of Flask's development server (S)
+- [x] **0.1** Commit and push the Spotter brand work (S)
+- [x] **0.2** Fresh history in a new `spotter` repo; the old `threat-dashboard` repo is retired (S)
+- [x] **0.3** Split `server.py` into modules, move HTML into `templates/` and JavaScript into `static/` (M)
+- [x] **0.4** Add pytest tests that load every page and endpoint (S)
+- [x] **0.5** Run on Waitress instead of Flask's development server (S)
 
 ## Phase 1: Data you can trust
 

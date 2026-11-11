@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IR Reports · Spotter</title>
+    {% include "_head.html" %}
+    <link rel="stylesheet" href="/static/css/reports.css">
+</head>
+<body>
+    <nav class="sidebar" id="app-nav" data-active="reports"></nav>
+    <script src="/static/brand.js"></script>
+    <div class="main-content">
+    <div class="header">
+        <h1>IR Reports <span class="op-name" id="pageOpName"></span></h1>
+    </div>
+    <div class="container">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search reports by IP, subject, analyst, or keywords...">
+        </div>
+        <div class="filters" id="filters"></div>
+        <div id="reportsContainer"></div>
+    </div>
+    <script src="/static/js/reports.js"></script>
+    </div>
+</body>
+</html>
