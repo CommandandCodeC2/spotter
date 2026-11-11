@@ -200,3 +200,65 @@ def test_dashboard_page_is_the_v2_shell(client):
     page = client.get('/').get_data(as_text=True)
     assert 'id="topbar"' in page and 'id="dashMain"' in page
     assert '/static/js/dashboard.js' in page
+
+
+GOOD_EVENT = {
+    "title": "Kerberoasting", "time": "NOV 11 14:05", "tech": "t1558.003", "tactics": "[TA0006]",
+    "severity": "high", "desc": "RC4 tickets from WS-01", "impact": "Passwords at risk",
+    "logged_by": "A. Reyes", "confirmed": False, "sneaky": "<script>",
+}
+
+
+def test_add_timeline_event(client):
+    client.post('/api/data', json=sample_data())
+    response = client.post('/api/timeline', json=GOOD_EVENT)
+    assert response.status_code == 201
+    body = response.get_json()
+    assert body['index'] == 3
+    saved = client.get('/api/data').get_json()['timeline'][3]
+    assert saved == {
+        "time": "NOV 11 14:05", "title": "Kerberoasting", "tech": "T1558.003", "tactics": "[TA0006]",
+        "desc": "RC4 tickets from WS-01", "impact": "Passwords at risk", "severity": "high",
+        "logged_by": "A. Reyes", "confirmed": False,
+    }  # technique upper-cased, unknown fields dropped
+    # The rest of the operation is untouched
+    assert client.get('/api/data').get_json()['reports'][0]['id'] == 'IR-0001'
+
+
+def test_add_timeline_event_minimal_and_tbd(client):
+    response = client.post('/api/timeline', json={"title": "Something odd", "time": "TBD", "severity": "medium"})
+    assert response.status_code == 201
+    saved = client.get('/api/data').get_json()['timeline'][0]
+    assert saved['time'] == 'TBD' and 'confirmed' not in saved and 'logged_by' not in saved
+
+
+@pytest.mark.parametrize('change, message', [
+    ({"title": "  "}, "title"),
+    ({"time": "yesterday"}, "Time"),
+    ({"time": "NOV 31 25:00"}, "Time"),
+    ({"tech": "1558"}, "Technique"),
+    ({"tactics": "TA0006"}, "Tactic"),
+    ({"severity": "urgent"}, "Severity"),
+])
+def test_add_timeline_event_rejects_bad_input(client, change, message):
+    response = client.post('/api/timeline', json={**GOOD_EVENT, **change})
+    assert response.status_code == 400
+    assert message in response.get_json()['error']
+    assert client.get('/api/data').get_json()['timeline'] == []
+
+
+def test_undo_removes_only_that_event(client):
+    client.post('/api/data', json=sample_data())
+    index = client.post('/api/timeline', json=GOOD_EVENT).get_json()['index']
+    response = client.delete(f'/api/timeline/{index}', json={"title": "Kerberoasting", "time": "NOV 11 14:05"})
+    assert response.status_code == 200
+    titles = [e['title'] for e in client.get('/api/data').get_json()['timeline']]
+    assert titles == ["Phishing email opened", "Beacon to C2", "Second beacon"]
+
+
+def test_undo_refused_if_event_does_not_match(client):
+    client.post('/api/data', json=sample_data())
+    response = client.delete('/api/timeline/0', json={"title": "Kerberoasting", "time": "NOV 11 14:05"})
+    assert response.status_code == 409
+    assert len(client.get('/api/data').get_json()['timeline']) == 3
+    assert client.delete('/api/timeline/99', json={}).status_code == 404

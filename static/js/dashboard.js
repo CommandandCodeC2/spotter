@@ -57,7 +57,8 @@
         data: null, campaign: null, stats: null,
         tactic: null, tab: 'All',
         wall: params.get('view') === 'wall',
-        pending: new Set()
+        pending: new Set(),
+        highlight: null
     };
     const main = document.getElementById('dashMain');
     const toastEl = document.getElementById('toast');
@@ -129,8 +130,9 @@
 
     function tplus(ms) {
         if (ms < 0) return 'T−' + tplus(-ms).slice(2);
-        const mins = Math.floor(ms / 60000);
-        return 'T+' + Math.floor(mins / 60) + 'h' + pad(mins % 60);
+        const mins = Math.floor(ms / 60000), hours = Math.floor(mins / 60);
+        if (hours >= 100) return 'T+' + Math.floor(hours / 24) + 'd' + pad(hours % 24) + 'h';
+        return 'T+' + hours + 'h' + pad(mins % 60);
     }
 
     function initials(name) {
@@ -174,7 +176,7 @@
             return { e, idx, when, ta: tacticOf(e) };
         });
         const dated = events.filter(x => x.when);
-        const undated = events.filter(x => !x.when);
+        const undated = events.filter(x => !x.when).sort((a, b) => b.idx - a.idx); // newest first
         dated.sort((a, b) => b.when.date - a.when.date || b.idx - a.idx);
 
         // Patient zero: set explicitly, or the first timed event
@@ -359,7 +361,8 @@
         else if (!x.when && model.pz) tp = 'T+?';
         const tacticName = x.ta ? TACTICS[x.ta] || x.ta : '';
         const who = initials(e.logged_by);
-        return `<div class="event${unconfirmed ? ' unconfirmed' : ''}">
+        const fresh = state.highlight === x.idx ? ' just-added' : '';
+        return `<div class="event${unconfirmed ? ' unconfirmed' : ''}${fresh}">
             <div class="event-when"><span class="event-time">${time}</span><span class="event-tplus">${tp}</span></div>
             <div class="event-rail"><div class="event-dot" style="color:${sev.color}"></div></div>
             <div class="event-body">
@@ -424,7 +427,7 @@
         if (!markerDone) html += briefingHtml(model);
 
         if (!shown) {
-            html = `<div class="timeline-empty">${sel ? 'No events recorded for this tactic yet.' : 'No timeline events recorded yet. <a href="/admin">Add one on the Admin page</a>.'}</div>`;
+            html = `<div class="timeline-empty">${sel ? 'No events recorded for this tactic yet.' : 'No timeline events recorded yet. <button class="timeline-add" type="button" data-open-drawer>Add the first one</button>.'}</div>`;
         }
 
         const countText = sel ? `${shown} of ${total} events` : `${plural(total, 'event', 'events')} · newest first`;
@@ -440,6 +443,7 @@
                 ${chip}
                 <span style="flex:1"></span>
                 ${legend}
+                ${state.wall ? '' : '<button class="timeline-add" type="button" data-open-drawer>Add</button>'}
             </div>
             ${html}
         </section>`;
@@ -565,8 +569,8 @@
 
         const step3 = active === 3
             ? `<div class="step-box"><div class="step-actions" style="margin-top:0">
-                    <a class="btn-primary" href="/admin">Open Admin</a>
-                    <span class="step-note">Log a timeline event, an indicator or a next action. The dashboard appears as soon as there is one.</span>
+                    <button class="btn-primary" type="button" data-open-drawer>Add the first event</button>
+                    <span class="step-note">Or press <kbd>N</kbd> on the dashboard at any time. Indicators and next actions can be added on the Admin page.</span>
                </div></div>`
             : '';
 
@@ -659,11 +663,17 @@
 
     // ---------- Actions ----------
 
-    function toast(label, value) {
+    function toast(label, value, action) {
         toastEl.innerHTML = esc(label) + (value ? ` <span class="mono">${esc(value.length > 24 ? value.slice(0, 22) + '…' : value)}</span>` : '');
+        if (action) {
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.textContent = action.label;
+            btn.addEventListener('click', () => { toastEl.hidden = true; action.run(); });
+            toastEl.appendChild(btn);
+        }
         toastEl.hidden = false;
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => { toastEl.hidden = true; }, 1800);
+        toastTimer = setTimeout(() => { toastEl.hidden = true; }, action ? 8000 : 1800);
     }
 
     async function copyText(text) {
@@ -764,6 +774,171 @@
     document.addEventListener('keydown', e => {
         if (e.key === 'Escape' && state.wall) location.href = '/';
     });
+
+    // ---------- Add event drawer ----------
+
+    const drawer = document.getElementById('drawer');
+    const form = document.getElementById('eventForm');
+    const formError = document.getElementById('formError');
+    const LOGGED_BY_KEY = 'spotter.loggedBy';
+    let drawerOpener = null;
+
+    const utcStamp = d => MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate() + ' ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes());
+
+    function fillTacticOptions() {
+        const select = document.getElementById('tacticSelect');
+        const chainIds = buildModel().chain.map(t => t.id).filter(Boolean);
+        const rest = Object.keys(TACTICS).filter(id => !chainIds.includes(id));
+        const option = id => `<option value="${id}">${esc(TACTICS[id])} (${id})</option>`;
+        select.innerHTML = '<option value="">Not mapped yet</option>'
+            + chainIds.map(option).join('')
+            + (rest.length ? `<optgroup label="Other tactics">${rest.map(option).join('')}</optgroup>` : '');
+    }
+
+    function fillTeamList() {
+        const members = ((state.campaign.team || {}).members || []).map(m => String(m).replace(/^[^:]{1,12}:\s*/, ''));
+        document.getElementById('teamList').innerHTML = members.map(m => `<option value="${esc(m)}">`).join('');
+    }
+
+    function updateWhenNow() {
+        document.getElementById('whenNow').textContent = utcStamp(new Date()) + 'Z  (' + dtg(new Date()) + ')';
+    }
+
+    function showWhen() {
+        const mode = form.elements.when.value;
+        document.getElementById('whenNow').hidden = mode !== 'now';
+        document.getElementById('whenEarlier').hidden = mode !== 'earlier';
+    }
+
+    function setError(msg, field) {
+        form.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+        formError.textContent = msg || '';
+        formError.hidden = !msg;
+        if (field) { field.setAttribute('aria-invalid', 'true'); field.focus(); }
+    }
+
+    function openDrawer(opener) {
+        if (!state.data || state.wall) return;
+        drawerOpener = opener || document.activeElement;
+        form.reset();
+        setError('');
+        fillTacticOptions();
+        fillTeamList();
+        if (state.tactic) form.elements.tactic.value = state.tactic;
+        const now = new Date();
+        form.elements.date.value = now.toISOString().slice(0, 10);
+        form.elements.clock.value = pad(now.getUTCHours()) + ':' + pad(now.getUTCMinutes());
+        form.elements.logged_by.value = localStorage.getItem(LOGGED_BY_KEY) || '';
+        updateWhenNow();
+        showWhen();
+        drawer.hidden = false;
+        form.elements.title.focus();
+    }
+
+    function closeDrawer() {
+        if (drawer.hidden) return;
+        drawer.hidden = true;
+        if (drawerOpener && document.body.contains(drawerOpener)) drawerOpener.focus();
+    }
+
+    function eventFromForm() {
+        const f = form.elements;
+        const title = f.title.value.trim();
+        if (!title) return setError('Give the event a title.', f.title);
+
+        let time = 'TBD';
+        if (f.when.value === 'now') {
+            time = utcStamp(new Date());
+        } else if (f.when.value === 'earlier') {
+            const m = f.date.value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!m) return setError('Pick the date it happened.', f.date);
+            const c = f.clock.value.trim().replace(/^(\d{1,2})(\d{2})$/, '$1:$2');
+            const t = c.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+            if (!t) return setError('Enter the time as HH:MM in 24-hour UTC, e.g. 14:05.', f.clock);
+            time = MONTHS[+m[2] - 1] + ' ' + (+m[3]) + ' ' + pad(t[1]) + ':' + t[2];
+        }
+
+        const tech = f.tech.value.trim().toUpperCase();
+        if (tech && !/^T\d{4}(\.\d{3})?$/.test(tech)) return setError('Technique IDs look like T1059 or T1059.001.', f.tech);
+
+        return {
+            title, time, tech,
+            tactics: f.tactic.value ? '[' + f.tactic.value + ']' : '',
+            severity: f.severity.value,
+            desc: f.desc.value.trim(),
+            impact: f.impact.value.trim(),
+            logged_by: f.logged_by.value.trim(),
+            confirmed: !f.unconfirmed.checked
+        };
+    }
+
+    async function submitEvent() {
+        setError('');
+        const event = eventFromForm();
+        if (!event) return;
+        const button = form.querySelector('button[type=submit]');
+        button.disabled = true;
+        try {
+            const r = await fetch('/api/timeline', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(event)
+            });
+            const body = await r.json().catch(() => ({}));
+            if (!r.ok) { setError(body.error || 'Could not save the event.'); return; }
+            if (event.logged_by) localStorage.setItem(LOGGED_BY_KEY, event.logged_by);
+            else localStorage.removeItem(LOGGED_BY_KEY);
+            const saved = body.event;
+            const index = body.index;
+            if (state.tactic && (saved.tactics || '').indexOf(state.tactic) < 0) state.tactic = null;
+            closeDrawer();
+            await loadAll();
+            state.highlight = index;
+            render();
+            state.highlight = null;
+            const row = main.querySelector('.event.just-added');
+            if (row) row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            toast('Added to timeline', saved.title, { label: 'Undo', run: () => undoEvent(index, saved) });
+        } catch (e) {
+            setError('Could not reach the Spotter server. Check it is running and try again.');
+        } finally {
+            button.disabled = false;
+        }
+    }
+
+    async function undoEvent(index, saved) {
+        try {
+            const r = await fetch('/api/timeline/' + index, {
+                method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: saved.title, time: saved.time })
+            });
+            await loadAll(); render();
+            toast(r.ok ? 'Event removed' : 'The timeline changed, so the event was not removed. Edit it on the Admin page.');
+        } catch (e) {
+            toast('Could not reach the server to undo.');
+        }
+    }
+
+    form.addEventListener('submit', e => { e.preventDefault(); submitEvent(); });
+    form.addEventListener('change', e => { if (e.target.name === 'when') showWhen(); });
+    form.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submitEvent(); }
+    });
+
+    document.addEventListener('click', e => {
+        const open = e.target.closest('[data-open-drawer]');
+        if (open) { e.preventDefault(); openDrawer(open); return; }
+        if (e.target.closest('[data-close-drawer]')) closeDrawer();
+    });
+
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && !drawer.hidden) { e.stopImmediatePropagation(); closeDrawer(); return; }
+        const typing = e.target.closest && e.target.closest('input, textarea, select, [contenteditable]');
+        if ((e.key === 'n' || e.key === 'N') && !typing && !e.ctrlKey && !e.metaKey && !e.altKey && drawer.hidden && !state.wall) {
+            e.preventDefault();
+            openDrawer(document.getElementById('addEventBtn'));
+        }
+    }, true);
+
+    setInterval(() => { if (!drawer.hidden) updateWhenNow(); }, 15000);
 
     // ---------- Start ----------
 

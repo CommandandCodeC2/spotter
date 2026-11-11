@@ -15,6 +15,7 @@ Built to answer four questions in order: **how bad is it, what's affected, what 
 - The alert is the headline, with one line of counts (compromised users, affected systems, active indicators, ATT&CK techniques) and what changed since the last briefing
 - Attack chain strip of MITRE ATT&CK tactics showing seen / investigating / not seen; click a tactic to filter the timeline
 - Timeline grouped by day, in Zulu time, with T+ since patient zero, who logged each event, unconfirmed events and a last-briefing marker
+- **Add event** (top bar, the "Add" link on the timeline, or press `N`): a side panel for logging a timeline event without leaving the dashboard. Time defaults to now in UTC; choose the tactic by name; Undo for 8 seconds after adding
 - Next actions as a checklist that saves as you tick
 - Expected next moves from threat intel, and an indicators table (IPs, domains, hashes) with one-click copy
 - First-run setup for a brand-new operation
@@ -99,6 +100,8 @@ PORT=9000 HOST=127.0.0.1 python3 server.py
 | `/api/data` | POST | Update dashboard data (accepts full JSON payload) |
 | `/api/iocs` | GET | IOC list (IPs, domains, file hashes) taken from `data.json` |
 | `/api/stats` | GET | Headline counts (IOCs, compromised users, affected systems, MITRE techniques, reports, open actions) calculated from `data.json`, plus `updated_at`, when the data last changed |
+| `/api/timeline` | POST | Add one timeline event (validated; unknown fields dropped). Returns its `index` |
+| `/api/timeline/<index>` | DELETE | Remove one event, used by Undo: `{"title": ..., "time": ...}` must match, so a changed timeline never loses the wrong event |
 | `/api/recommendations/<index>` | POST | Mark one recommendation done or open: `{"status": "completed" or "active", "text": "<its text>"}`. Refused with 409 if the text doesn't match, so a changed list never updates the wrong item |
 | `/api/campaign` | GET/POST | Read or update the campaign settings in `campaign.json` |
 | `/api/upload-map` | POST | Upload a draw.io XML network diagram |

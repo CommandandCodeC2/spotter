@@ -18,12 +18,93 @@
             <span class="topbar-spacer"></span>
             <span class="topbar-clock mono" id="clock"></span>
             <a class="topbar-link" href="?view=wall" id="wallLink">Wall display</a>
+            <button class="btn-primary" type="button" id="addEventBtn" data-open-drawer
+                    title="Add a timeline event (N)" aria-keyshortcuts="n">Add event</button>
         </header>
 
         <main class="dash-main" id="dashMain" aria-live="polite">
             <p class="loading">Loading…</p>
         </main>
     </div>
+
+    <aside class="drawer" id="drawer" role="dialog" aria-modal="false" aria-labelledby="drawerTitle" hidden>
+        <form id="eventForm" novalidate>
+            <div class="drawer-head">
+                <h2 id="drawerTitle">Add timeline event</h2>
+                <button class="icon-btn" type="button" data-close-drawer aria-label="Close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <div class="drawer-body">
+                <label class="field">Title
+                    <input name="title" required maxlength="200" autocomplete="off" placeholder="e.g. Kerberoasting">
+                </label>
+
+                <fieldset class="field">
+                    <legend>When <span class="field-hint">UTC</span></legend>
+                    <div class="segmented" role="radiogroup" aria-label="When">
+                        <label><input type="radio" name="when" value="now" checked><span>Now</span></label>
+                        <label><input type="radio" name="when" value="earlier"><span>Earlier</span></label>
+                        <label><input type="radio" name="when" value="tbd"><span>Not sure yet</span></label>
+                    </div>
+                    <div class="when-now mono" id="whenNow"></div>
+                    <div class="when-earlier" id="whenEarlier" hidden>
+                        <input type="date" name="date" aria-label="Date (UTC)">
+                        <input name="clock" class="mono" placeholder="HH:MM" maxlength="5" inputmode="numeric" aria-label="Time (UTC, 24-hour)">
+                        <span class="field-hint">24-hour, UTC</span>
+                    </div>
+                </fieldset>
+
+                <div class="field-row">
+                    <label class="field">Tactic
+                        <select name="tactic" id="tacticSelect"></select>
+                    </label>
+                    <label class="field">Technique
+                        <input name="tech" class="mono" maxlength="9" autocomplete="off" placeholder="T1558.003">
+                    </label>
+                </div>
+
+                <fieldset class="field">
+                    <legend>Severity</legend>
+                    <div class="segmented severity" role="radiogroup" aria-label="Severity">
+                        <label><input type="radio" name="severity" value="critical"><span><i style="background:var(--critical)"></i>Critical</span></label>
+                        <label><input type="radio" name="severity" value="high"><span><i style="background:var(--high)"></i>High</span></label>
+                        <label><input type="radio" name="severity" value="medium" checked><span><i style="background:var(--medium)"></i>Medium</span></label>
+                        <label><input type="radio" name="severity" value="low"><span><i style="background:var(--low)"></i>Low</span></label>
+                    </div>
+                </fieldset>
+
+                <label class="field">What happened
+                    <textarea name="desc" rows="4" maxlength="2000" placeholder="e.g. RC4 service ticket requests for svc_backup from HL-WS-04"></textarea>
+                    <span class="field-hint">IPs, hostnames, domains and file names are shown in monospace automatically. Use `backticks` for commands.</span>
+                </label>
+
+                <label class="field">Impact
+                    <input name="impact" maxlength="300" autocomplete="off" placeholder="e.g. Service account passwords at risk">
+                </label>
+
+                <label class="check-row">
+                    <input type="checkbox" name="unconfirmed">
+                    <span>Unconfirmed <span class="field-hint">still being verified</span></span>
+                </label>
+
+                <label class="field">Logged by
+                    <input name="logged_by" maxlength="60" autocomplete="off" list="teamList" placeholder="Your name">
+                    <datalist id="teamList"></datalist>
+                    <span class="field-hint">Remembered on this computer.</span>
+                </label>
+
+                <p class="form-error" id="formError" role="alert" hidden></p>
+            </div>
+
+            <div class="drawer-foot">
+                <button class="btn-primary" type="submit">Add to timeline</button>
+                <button class="btn-ghost" type="button" data-close-drawer>Cancel</button>
+                <span class="field-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to add</span>
+            </div>
+        </form>
+    </aside>
 
     <div class="toast" id="toast" role="status" hidden></div>
 
