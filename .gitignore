@@ -1,0 +1,9 @@
+__pycache__/
+server.log
+*.pyc
+
+# Mission data: created on first run and kept only on your computer
+data.json
+campaign.json
+uploads/*
+!uploads/.gitkeep
